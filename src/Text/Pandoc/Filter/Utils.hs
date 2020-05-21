@@ -11,9 +11,15 @@ module Text.Pandoc.Filter.Utils (
   PandocFilterM,
   PandocFilter,
   applyFilter,
+  getFilterM,
+  getFilter,
+  toFilterM,
+  applyFiltersM,
+  applyFilters,
   ToPartialFilter (..)
   ) where
 
+import Control.Monad          ((>=>))
 import Data.Functor.Identity  (Identity (..))
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
@@ -49,11 +55,30 @@ type PandocFilter = PartialFilter Pandoc
 -- * @m@: a monad.
 type PandocFilterM m = PartialFilterM m Pandoc
 
-
 applyFilter
   :: PartialFilter p -- ^ A wrapped partial filter
   -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
 applyFilter = (runIdentity .) . applyFilterM
+
+-- | A synonym for 'applyFilterM'. It can be used when you don't need to apply
+-- the filter immediately.
+getFilterM
+  :: PartialFilterM m p -- ^ A wrapped partial filter
+  -> (p -> m p)        -- ^ Unwrapped filter that can be directly applied to @p@
+getFilterM = applyFilterM
+
+-- | A synonym for 'applyFilter'. It can be used when you don't need to apply
+-- the filter immediately.
+getFilter
+  :: PartialFilter p -- ^ A wrapped partial filter
+  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
+getFilter = applyFilter
+
+instance (Monad m) => Semigroup (PartialFilterM m p) where
+  f1 <> f2 = PartialFilterM (applyFilterM f1 >=> applyFilterM f2)
+
+instance (Monad m) => Monoid (PartialFilterM m p) where
+  mempty = PartialFilterM return
 
 class ToPartialFilter m f p where
   toFilter
@@ -71,3 +96,22 @@ instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> [a]) p where
 
 instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
   toFilter = PartialFilterM . walkM . (fmap concat .) . mapM
+
+-- | Convert an ordinary 'PartialFilter' to the monadic version
+-- 'PartialFilterM'. It can also be used to convert between levels of filters.
+toFilterM
+  :: (Monad m, Walkable a b)
+  => PartialFilter a    -- ^ An ordinary filter.
+  -> PartialFilterM m b -- ^ The monadic version.
+toFilterM  = toFilter . applyFilter
+
+applyFiltersM
+  :: (Monad m)
+  => [PartialFilterM m p] -- ^ A monadic partial filter.
+  -> (p -> m p)
+applyFiltersM = getFilterM . mconcat
+
+applyFilters
+  :: [PartialFilter p] -- ^ A monadic partial filter.
+  -> (p -> p)
+applyFilters = getFilter . mconcat
