@@ -6,7 +6,7 @@
 -- of Pandoc filters. For example, for the conversion from @'Inline' ->
 -- ['Inline']@ to @'Pandoc' -> 'Pandoc'@ filter.
 module Text.Pandoc.Filter.Utils (
-  PartialFilterM (..),
+  PartialFilterM (applyFilterM),
   PartialFilter,
   PandocFilterM,
   PandocFilter,
@@ -18,13 +18,37 @@ import Data.Functor.Identity  (Identity (..))
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
 
-newtype PartialFilterM m p = PartialFilterM { applyFilterM :: p -> m p }
+-- | @PartialFilterM m p@ is a wrapper for any monadic @p -> m p@ Pandoc
+-- filters acting on a subnode (e.g. 'Inline' or 'Block') of the 'Pandoc'
+-- abstract syntax tree.
+--
+-- * @m@: a monad.
+-- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
+newtype PartialFilterM m p =
+  PartialFilterM
+    { -- | Apply the filter on @p@.
+      applyFilterM :: p -> m p
+    }
 
+-- | @PartialFilter p@ is a wrapper for ordinary @p -> p@ Pandoc filters acting
+-- on a subnode (e.g. 'Inline' or 'Block') of the 'Pandoc' abstract syntax
+-- tree.
+--
+-- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
 type PartialFilter = PartialFilterM Identity
 
+-- | A synonym for @PartialFilter Pandoc@. It encapsulates a monadic
+-- filter @'Pandoc' -> m 'Pandoc'@ acting directly on 'Pandoc'.
+--
+-- * @m@: a monad.
+type PandocFilter = PartialFilter Pandoc
+
+-- | A synonym for @PartialFilterM m Pandoc@, a monadic version of
+-- 'PandocFilter'.
+--
+-- * @m@: a monad.
 type PandocFilterM m = PartialFilterM m Pandoc
 
-type PandocFilter = PandocFilterM Identity
 
 applyFilter
   :: PartialFilter p -- ^ A wrapped partial filter
