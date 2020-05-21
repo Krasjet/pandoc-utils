@@ -1,0 +1,6 @@
+cradle:
+  stack:
+    - path: "./test"
+      component: "pandoc-utils:test:pandoc-utils-test"
+    - path: "./"
+      component: "pandoc-utils:lib"
