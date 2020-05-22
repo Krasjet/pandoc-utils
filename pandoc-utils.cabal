@@ -3,7 +3,13 @@ version:             0.2.0
 synopsis:
   A few utility functions to work with Pandoc in Haskell.
 description:
-  A work in progress.
+  This package contains some useful functions for writing [Pandoc](https://pandoc.org/)
+  filters and integrating Pandoc into Haskell applications such
+  as [Hakyll](https://jaspervdj.be/hakyll/). It provides a
+  composable wrapper for filters acting on nodes of the [Pandoc
+  AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html).
+  .
+  For more examples, please see the [README](https://github.com/Krasjet/pandoc-utils) on GitHub.
 license:             MIT
 license-file:        LICENSE
 author:              Krasjet

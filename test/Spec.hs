@@ -120,6 +120,9 @@ delink x              = [x]
 delinkFilter :: PandocFilter
 delinkFilter = mkFilter delink
 
+myFilter :: PandocFilter
+myFilter = beheadFilter <> delinkFilter
+
 -- ** Documents
 
 readmeText :: Text
@@ -157,11 +160,19 @@ expectedDoc = Pandoc (Meta mempty)
 -- ** The example
 
 mdToHtml
-  :: Text
-  -> Either P.PandocError Text
+  :: Text                      -- ^ Input markdown string
+  -> Either P.PandocError Text -- ^ Html string or error
 mdToHtml md = P.runPure $ do
   doc <- P.readMarkdown def md
   let doc' = applyFilters [beheadFilter, delinkFilter] doc
+  P.writeHtml5String def doc'
+
+mdToHtmlCompose
+  :: Text                      -- ^ Input markdown string
+  -> Either P.PandocError Text -- ^ Html string or error
+mdToHtmlCompose md = P.runPure $ do
+  doc <- P.readMarkdown def md
+  let doc' = applyFilter myFilter doc
   P.writeHtml5String def doc'
 
 
@@ -233,12 +244,13 @@ composeSpec = parallel $ do
 
 readmeSpec :: Spec
 readmeSpec = parallel $ do
-  it "processes filter examples correctly on AST level" $
+  it "processes filter examples correctly on AST level" $ do
     applyFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
+    applyFilter myFilter readmeDoc `shouldBe` expectedDoc
 
-  it "processes filter examples correctly on Text level" $
+  it "processes filter examples correctly on Text level" $ do
     fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
-
+    fromRight "" (mdToHtmlCompose readmeText) `shouldBe` expectedHtml
 
 main :: IO ()
 main = do
