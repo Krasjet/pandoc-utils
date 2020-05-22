@@ -7,17 +7,20 @@
 -- of Pandoc filters. For example, for the conversion from @'Inline' ->
 -- ['Inline']@ to @'Pandoc' -> 'Pandoc'@ filter.
 module Text.Pandoc.Filter.Utils (
+  -- * Definitions
   PartialFilterM (applyFilterM),
   PartialFilter,
+  applyFilter,
   PandocFilterM,
   PandocFilter,
-  applyFilter,
+  -- * Filter conversion
   getFilterM,
   getFilter,
+  ToPartialFilter (..),
   toFilterM,
+  -- * Filter composition
   applyFiltersM,
   applyFilters,
-  ToPartialFilter (..)
   ) where
 
 import Control.Monad          ((>=>))
@@ -59,22 +62,22 @@ type PandocFilterM m = PartialFilterM m Pandoc
 
 -- | Apply an ordinary filter to @p@, which returns @p@ directly.
 applyFilter
-  :: PartialFilter p -- ^ A wrapped partial filter
-  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
+  :: PartialFilter p -- ^ A wrapped partial filter.
+  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
 applyFilter = (runIdentity .) . applyFilterM
 
 -- | A synonym for 'applyFilterM'. It can be used when you don't need to apply
 -- the filter immediately.
 getFilterM
-  :: PartialFilterM m p -- ^ A wrapped partial filter
-  -> (p -> m p)         -- ^ Unwrapped filter that can be directly applied to @p@
+  :: PartialFilterM m p -- ^ A wrapped partial filter.
+  -> (p -> m p)         -- ^ Unwrapped filter that can be directly applied to @p@.
 getFilterM = applyFilterM
 
 -- | A synonym for 'applyFilter'. It can be used when you don't need to apply
 -- the filter immediately.
 getFilter
-  :: PartialFilter p -- ^ A wrapped partial filter
-  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
+  :: PartialFilter p -- ^ A wrapped partial filter.
+  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
 getFilter = applyFilter
 
 -- | The 'Semigroup' instance of `PartialFilterM`. @f1 <> f2@ will apply @f1@
@@ -89,7 +92,7 @@ instance (Monad m) => Monoid (PartialFilterM m p) where
 -- | A helper typeclass used as a polymorphic constructor of 'PartialFilterM'.
 class ToPartialFilter m f p where
   -- | The actual constructor of 'PartialFilterM'. It takes an ordinary filter
-  -- function and wraps it as a 'PartialFilterM'
+  -- function and wraps it as a 'PartialFilterM'.
   mkFilter
     :: f                  -- ^ A partial filter function, usually @a -> a@ for some @'Walkable' a p@.
     -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter.
@@ -119,8 +122,8 @@ toFilterM = PartialFilterM . (return .) . getFilter
 -- last element will be applied at the end.
 applyFiltersM
   :: (Foldable t, Monad m)
-  => t (PartialFilterM m p) -- ^ A list of monadic partial filters
-  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly
+  => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
+  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
 applyFiltersM = getFilterM . fold
 
 -- | Apply a list of partial filters sequentially, from left to right, i.e.
@@ -129,5 +132,5 @@ applyFiltersM = getFilterM . fold
 applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of partial filter.
-  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly
+  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
 applyFilters = getFilter . fold
