@@ -13,7 +13,7 @@ homepage:            https://github.com/Krasjet/pandoc-utils
 category:            Text
 
 build-type:          Simple
-cabal-version:       >=2.0
+cabal-version:       2.0
 
 library
   hs-source-dirs:      src
