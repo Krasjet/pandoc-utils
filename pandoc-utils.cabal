@@ -1,5 +1,5 @@
 name:                pandoc-utils
-version:             0.1.0
+version:             0.2.0
 synopsis:
   A few utility functions to work with Pandoc in Haskell.
 description:
@@ -23,7 +23,7 @@ library
       Text.Pandoc.Filter.Utils
   build-depends:
       base          >=4.10 && <4.15
-    , pandoc-types ^>=1.20
+    , pandoc-types ^>=1.17.2 || ^>=1.20
 
 test-suite pandoc-utils-test
   hs-source-dirs:      test
