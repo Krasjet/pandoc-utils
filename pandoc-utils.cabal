@@ -1,7 +1,7 @@
 name:                pandoc-utils
 version:             0.1.0
 synopsis:
-  A few utility functions to work with Pandoc in Haskell applications.
+  A few utility functions to work with Pandoc in Haskell.
 description:
   A work in progress.
 license:             MIT

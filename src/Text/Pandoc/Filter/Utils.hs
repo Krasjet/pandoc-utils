@@ -34,7 +34,7 @@ import Text.Pandoc.Walk
 -- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
 newtype PartialFilterM m p =
   PartialFilterM
-    { -- | Apply the filter on @p@.
+    { -- | Apply a monadic filter to @p@.
       applyFilterM :: p -> m p
     }
 
@@ -57,6 +57,7 @@ type PandocFilter = PartialFilter Pandoc
 -- * @m@: a monad.
 type PandocFilterM m = PartialFilterM m Pandoc
 
+-- | Apply an ordinary filter to @p@, which returns @p@ directly.
 applyFilter
   :: PartialFilter p -- ^ A wrapped partial filter
   -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
@@ -66,7 +67,7 @@ applyFilter = (runIdentity .) . applyFilterM
 -- the filter immediately.
 getFilterM
   :: PartialFilterM m p -- ^ A wrapped partial filter
-  -> (p -> m p)        -- ^ Unwrapped filter that can be directly applied to @p@
+  -> (p -> m p)         -- ^ Unwrapped filter that can be directly applied to @p@
 getFilterM = applyFilterM
 
 -- | A synonym for 'applyFilter'. It can be used when you don't need to apply
@@ -76,16 +77,22 @@ getFilter
   -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@
 getFilter = applyFilter
 
+-- | The 'Semigroup' instance of `PartialFilterM`. @f1 <> f2@ will apply @f1@
+-- first followed by @f2@.
 instance (Monad m) => Semigroup (PartialFilterM m p) where
   f1 <> f2 = PartialFilterM (applyFilterM f1 >=> applyFilterM f2)
 
+-- | The 'Monoid' instance of `PartialFilterM`.
 instance (Monad m) => Monoid (PartialFilterM m p) where
   mempty = PartialFilterM return
 
+-- | A helper typeclass used as a polymorphic constructor of 'PartialFilterM'.
 class ToPartialFilter m f p where
+  -- | The actual constructor of 'PartialFilterM'. It takes an ordinary filter
+  -- function and wraps it as a 'PartialFilterM'
   mkFilter
-    :: f                  -- ^ A partial filter, usually @a -> a@ for some 'Walkable' @a@
-    -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter
+    :: f                  -- ^ A partial filter function, usually @a -> a@ for some @'Walkable' a p@.
+    -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter.
 
 instance (Monad m, Walkable a p) => ToPartialFilter m (a -> a) p where
   mkFilter = PartialFilterM . (return .) . walk
@@ -107,7 +114,7 @@ toFilterM
   -> PartialFilterM m a -- ^ The monadic version.
 toFilterM = PartialFilterM . (return .) . getFilter
 
--- | A apply a list of monadic partial filters sequentially, from left to
+-- | Apply a list of monadic partial filters sequentially, from left to
 -- right, i.e.  the first element in the list will be applied first and the
 -- last element will be applied at the end.
 applyFiltersM
@@ -116,11 +123,11 @@ applyFiltersM
   -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly
 applyFiltersM = getFilterM . fold
 
--- | A apply a list of partial filters sequentially, from left to right, i.e.
+-- | Apply a list of partial filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
 -- will be applied at the end.
 applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of partial filter.
-  -> (p -> p)          -- ^ Unwrapped filter applicable to @p@ directly
+  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly
 applyFilters = getFilter . fold
