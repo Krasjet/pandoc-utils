@@ -2,9 +2,12 @@
 
 module Main where
 
-import qualified Data.Text as T
+import qualified Data.Text   as T
+import qualified Text.Pandoc as P
 
 import Control.Monad.Trans.Writer
+import Data.Default               (def)
+import Data.Either                (fromRight)
 import Data.Text                  (Text)
 import Test.Tasty
 import Test.Tasty.Hspec
@@ -99,6 +102,69 @@ extractFilter :: Inline -> Writer Text Inline
 extractFilter il@(Str str) = tell str >> return il
 extractFilter x            = return x
 
+-- * Readme example
+
+-- ** Filters
+
+behead :: Block -> Block
+behead (Header n _ xs) | n >= 2 = Para [Emph xs]
+behead x               = x
+
+beheadFilter :: PandocFilter
+beheadFilter = mkFilter behead
+
+delink :: Inline -> [Inline]
+delink (Link _ txt _) = txt
+delink x              = [x]
+
+delinkFilter :: PandocFilter
+delinkFilter = mkFilter delink
+
+-- ** Documents
+
+readmeText :: Text
+readmeText = T.strip $ T.unlines
+  [ "## Heading"
+  , "Hello, [Pandoc](https://pandoc.org)."
+  ]
+
+readmeDoc :: Pandoc
+readmeDoc = Pandoc (Meta mempty)
+  [ Header 2 ("heading", [], []) [Str "Heading"]
+  , Para [ Str "Hello,"
+         , Space
+         , Link ("",[],[]) [Str "Pandoc"] ("https://pandoc.org","")
+         , Str "."
+         ]
+  ]
+
+expectedHtml :: Text
+expectedHtml = T.strip $ T.unlines
+  [ "<p><em>Heading</em></p>"
+  , "<p>Hello, Pandoc.</p>"
+  ]
+
+expectedDoc :: Pandoc
+expectedDoc = Pandoc (Meta mempty)
+  [ Para [Emph [Str "Heading"]]
+  , Para [ Str "Hello,"
+         , Space
+         , Str "Pandoc"
+         , Str "."
+         ]
+  ]
+
+-- ** The example
+
+mdToHtml
+  :: Text
+  -> Either P.PandocError Text
+mdToHtml md = P.runPure $ do
+  doc <- P.readMarkdown def md
+  let doc' = applyFilters [beheadFilter, delinkFilter] doc
+  P.writeHtml5String def doc'
+
+
 convertSpec :: Spec
 convertSpec = parallel $ do
   it "converts a -> a filter to Pandoc -> Pandoc filter" $ do
@@ -165,11 +231,22 @@ composeSpec = parallel $ do
     doc' `shouldBe` expectedDup
     s' `shouldBe` T.pack "abcdabcd"
 
+readmeSpec :: Spec
+readmeSpec = parallel $ do
+  it "processes filter examples correctly on AST level" $
+    applyFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
+
+  it "processes filter examples correctly on Text level" $
+    fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
+
+
 main :: IO ()
 main = do
   testConvert <- testSpec "Filter conversion" convertSpec
   testCompose <- testSpec "Filter composition" composeSpec
+  testReadme <- testSpec "Readme examples" readmeSpec
   defaultMain $ testGroup "Tests"
     [ testConvert
     , testCompose
+    , testReadme
     ]

@@ -37,6 +37,8 @@ test-suite pandoc-utils-test
       base          >=4.10 && <4.15
     , pandoc-utils
     , containers   ^>=0.6
+    , data-default ^>=0.7
+    , pandoc       ^>=2.9
     , pandoc-types ^>=1.20
     , transformers ^>=0.5
     , tasty        ^>=1.2
