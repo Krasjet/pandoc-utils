@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE IncoherentInstances   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | This module contains some utility functions to work with different levels
@@ -20,6 +21,7 @@ module Text.Pandoc.Filter.Utils (
   ) where
 
 import Control.Monad          ((>=>))
+import Data.Foldable          (fold)
 import Data.Functor.Identity  (Identity (..))
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk
@@ -81,37 +83,44 @@ instance (Monad m) => Monoid (PartialFilterM m p) where
   mempty = PartialFilterM return
 
 class ToPartialFilter m f p where
-  toFilter
+  mkFilter
     :: f                  -- ^ A partial filter, usually @a -> a@ for some 'Walkable' @a@
     -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter
 
 instance (Monad m, Walkable a p) => ToPartialFilter m (a -> a) p where
-  toFilter = PartialFilterM . (return .) . walk
+  mkFilter = PartialFilterM . (return .) . walk
 
 instance (Monad m, Walkable a p) => ToPartialFilter m (a -> m a) p where
-  toFilter = PartialFilterM . walkM
+  mkFilter = PartialFilterM . walkM
 
 instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> [a]) p where
-  toFilter = PartialFilterM . (return .) . walk . concatMap
+  mkFilter = PartialFilterM . (return .) . walk . concatMap
 
 instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
-  toFilter = PartialFilterM . walkM . (fmap concat .) . mapM
+  mkFilter = PartialFilterM . walkM . (fmap concat .) . mapM
 
 -- | Convert an ordinary 'PartialFilter' to the monadic version
--- 'PartialFilterM'. It can also be used to convert between levels of filters.
+-- 'PartialFilterM'.
 toFilterM
-  :: (Monad m, Walkable a b)
-  => PartialFilter a    -- ^ An ordinary filter.
-  -> PartialFilterM m b -- ^ The monadic version.
-toFilterM  = toFilter . applyFilter
-
-applyFiltersM
   :: (Monad m)
-  => [PartialFilterM m p] -- ^ A monadic partial filter.
-  -> (p -> m p)
-applyFiltersM = getFilterM . mconcat
+  => PartialFilter a    -- ^ An ordinary filter.
+  -> PartialFilterM m a -- ^ The monadic version.
+toFilterM = PartialFilterM . (return .) . getFilter
 
+-- | A apply a list of monadic partial filters sequentially, from left to
+-- right, i.e.  the first element in the list will be applied first and the
+-- last element will be applied at the end.
+applyFiltersM
+  :: (Foldable t, Monad m)
+  => t (PartialFilterM m p) -- ^ A list of monadic partial filters
+  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly
+applyFiltersM = getFilterM . fold
+
+-- | A apply a list of partial filters sequentially, from left to right, i.e.
+-- the first element in the list will be applied first and the last element
+-- will be applied at the end.
 applyFilters
-  :: [PartialFilter p] -- ^ A monadic partial filter.
-  -> (p -> p)
-applyFilters = getFilter . mconcat
+  :: (Foldable t)
+  => t (PartialFilter p) -- ^ A list of partial filter.
+  -> (p -> p)          -- ^ Unwrapped filter applicable to @p@ directly
+applyFilters = getFilter . fold
