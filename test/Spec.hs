@@ -178,79 +178,84 @@ mdToHtmlCompose md = P.runPure $ do
 
 convertSpec :: Spec
 convertSpec = parallel $ do
-  it "converts a -> a filter to Pandoc -> Pandoc filter" $ do
-    applyFilter (mkFilter capFilterInline) docPara `shouldBe` expectedInline
-    applyFilter (mkFilter unParaFilterBlock) docPara `shouldBe` expectedBlock
+  describe "mkFilter" $ do
+    it "converts a -> a filter to Pandoc -> Pandoc filter" $ do
+      applyFilter (mkFilter capFilterInline) docPara `shouldBe` expectedInline
+      applyFilter (mkFilter unParaFilterBlock) docPara `shouldBe` expectedBlock
 
-  it "converts a -> a filter to b -> b partial filter" $
-    applyFilter (mkFilter capFilterInline) blockPara `shouldBe` expectedInlinePartial
+    it "converts a -> a filter to b -> b partial filter" $
+      applyFilter (mkFilter capFilterInline) blockPara `shouldBe` expectedInlinePartial
 
-  it "converts a -> [a] filter to Pandoc -> Pandoc filter" $ do
-    applyFilter (mkFilter dupFilterInline) docPara `shouldBe` expectedInlineL
-    applyFilter (mkFilter dupFilterBlock) docPara `shouldBe` expectedBlockL
+    it "converts a -> [a] filter to Pandoc -> Pandoc filter" $ do
+      applyFilter (mkFilter dupFilterInline) docPara `shouldBe` expectedInlineL
+      applyFilter (mkFilter dupFilterBlock) docPara `shouldBe` expectedBlockL
 
-  it "converts a -> [a] filter to b -> b partial filter" $
-    applyFilter (mkFilter dupFilterInline) blockPara `shouldBe` expectedInlinePartialL
+    it "converts a -> [a] filter to b -> b partial filter" $
+      applyFilter (mkFilter dupFilterInline) blockPara `shouldBe` expectedInlinePartialL
 
-  it "converts a -> m a filter to Pandoc -> m Pandoc filter" $ do
-    let (doc, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineM) docPara
-    doc `shouldBe` expectedInline
-    s `shouldBe` T.pack "abcd"
+    it "converts a -> m a filter to Pandoc -> m Pandoc filter" $ do
+      let (doc, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineM) docPara
+      doc `shouldBe` expectedInline
+      s `shouldBe` T.pack "abcd"
 
-  it "converts a -> m a filter to b -> m b filter" $ do
-    let (bl, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineM) blockPara
-    bl `shouldBe` expectedInlinePartial
-    s `shouldBe` T.pack "abcd"
+    it "converts a -> m a filter to b -> m b filter" $ do
+      let (bl, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineM) blockPara
+      bl `shouldBe` expectedInlinePartial
+      s `shouldBe` T.pack "abcd"
 
-  it "converts a -> m [a] filter to Pandoc -> m Pandoc filter" $ do
-    let (doc, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineML) docPara
-    doc `shouldBe` expectedInlineL
-    s `shouldBe` T.pack "abcd"
+    it "converts a -> m [a] filter to Pandoc -> m Pandoc filter" $ do
+      let (doc, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineML) docPara
+      doc `shouldBe` expectedInlineL
+      s `shouldBe` T.pack "abcd"
 
-  it "converts a -> m [a] filter to b -> m b filter" $ do
-    let (bl, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineML) blockPara
-    bl `shouldBe` expectedInlinePartialL
-    s `shouldBe` T.pack "abcd"
+    it "converts a -> m [a] filter to b -> m b filter" $ do
+      let (bl, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineML) blockPara
+      bl `shouldBe` expectedInlinePartialL
+      s `shouldBe` T.pack "abcd"
 
-  it "converts a -> a filter to a -> m a filter" $ do
-    let capFilterM = toFilterM $ mkFilter capFilterInline
-    applyFilterM capFilterM (Str "abcd") `shouldBe` Just (Str "ABCD")
+  describe "toFilterM" $
+    it "converts a -> a filter to a -> m a filter" $ do
+      let capFilterM = toFilterM $ mkFilter capFilterInline
+      applyFilterM capFilterM (Str "abcd") `shouldBe` Just (Str "ABCD")
 
 composeSpec :: Spec
 composeSpec = parallel $ do
   let dup = mkFilter dupFilterInline
       merge = mkFilter mergeFilterInline
       extract = mkFilter extractFilter
-  it "applys dup correctly" $
-    applyFilter dup compPara `shouldBe` expectedDup
+  describe "applyFilter" $ do
+    it "applys dup correctly" $
+      applyFilter dup compPara `shouldBe` expectedDup
 
-  it "applys merge correctly" $
-    applyFilter merge compPara2 `shouldBe` expectedMerge
+    it "applys merge correctly" $
+      applyFilter merge compPara2 `shouldBe` expectedMerge
 
-  it "applys PartialFilter composition from left to right" $ do
-    applyFilter (dup <> merge) compPara `shouldBe` expectedDupMerge
-    applyFilter (merge <> dup) compPara `shouldBe` expectedMergeDup
-    applyFilters [dup, merge] compPara `shouldBe` expectedDupMerge
-    applyFilters [merge, dup] compPara `shouldBe` expectedMergeDup
+  describe "applyFilters and monoid" $ do
+    it "applys PartialFilter composition from left to right" $ do
+      applyFilter (dup <> merge) compPara `shouldBe` expectedDupMerge
+      applyFilter (merge <> dup) compPara `shouldBe` expectedMergeDup
+      applyFilters [dup, merge] compPara `shouldBe` expectedDupMerge
+      applyFilters [merge, dup] compPara `shouldBe` expectedMergeDup
 
-  it "applys PartialFilterM composition from left to right" $ do
-    let (doc, s) = runWriter $ applyFilterM (extract <> toFilterM dup) compPara
-    doc `shouldBe` expectedDup
-    s `shouldBe` T.pack "abcd"
+    it "applys PartialFilterM composition from left to right" $ do
+      let (doc, s) = runWriter $ applyFilterM (extract <> toFilterM dup) compPara
+      doc `shouldBe` expectedDup
+      s `shouldBe` T.pack "abcd"
 
-    let (doc', s') = runWriter $ applyFilterM (toFilterM dup <> extract) compPara
-    doc' `shouldBe` expectedDup
-    s' `shouldBe` T.pack "abcdabcd"
+      let (doc', s') = runWriter $ applyFilterM (toFilterM dup <> extract) compPara
+      doc' `shouldBe` expectedDup
+      s' `shouldBe` T.pack "abcdabcd"
 
 readmeSpec :: Spec
-readmeSpec = parallel $ do
-  it "processes filter examples correctly on AST level" $ do
-    applyFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
-    applyFilter myFilter readmeDoc `shouldBe` expectedDoc
+readmeSpec = parallel $
+  describe "readme example" $ do
+    it "processes filter examples correctly on AST level" $ do
+      applyFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
+      applyFilter myFilter readmeDoc `shouldBe` expectedDoc
 
-  it "processes filter examples correctly on Text level" $ do
-    fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
-    fromRight "" (mdToHtmlCompose readmeText) `shouldBe` expectedHtml
+    it "processes filter examples correctly on Text level" $ do
+      fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
+      fromRight "" (mdToHtmlCompose readmeText) `shouldBe` expectedHtml
 
 main :: IO ()
 main = do
