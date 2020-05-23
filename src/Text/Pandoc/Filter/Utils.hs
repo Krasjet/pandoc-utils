@@ -7,19 +7,23 @@
 -- ['Inline']@ to @'Pandoc' -> 'Pandoc'@ filter.
 module Text.Pandoc.Filter.Utils (
   -- * Definitions
-  PartialFilterM (applyFilterM),
+  PartialFilterM,
   PartialFilter,
-  applyFilter,
   PandocFilterM,
   PandocFilter,
-  -- * Filter conversion
-  getFilterM,
-  getFilter,
-  ToPartialFilter (..),
-  toFilterM,
+  -- * Filter application
+  applyFilterM,
+  applyFilter,
   -- * Filter composition
   applyFiltersM,
   applyFilters,
+  -- * Filter conversion
+  getFilterM,
+  getFilter,
+  concatFiltersM,
+  concatFilters,
+  ToPartialFilter (..),
+  toFilterM,
   ) where
 
 import Control.Monad          ((>=>))
@@ -133,3 +137,18 @@ applyFilters
   => t (PartialFilter p) -- ^ A list of partial filter.
   -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
 applyFilters = getFilter . fold
+
+-- | An alias for 'applyFiltersM', used when the filter is not used
+-- immediately.
+concatFiltersM
+  :: (Foldable t, Monad m)
+  => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
+  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
+concatFiltersM = applyFiltersM
+
+-- | An alias for 'applyFilters', used when the filter is not used immediately.
+concatFilters
+  :: (Foldable t)
+  => t (PartialFilter p) -- ^ A list of partial filter.
+  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
+concatFilters = applyFilters
