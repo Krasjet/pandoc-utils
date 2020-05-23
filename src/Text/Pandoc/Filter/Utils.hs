@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes            #-}
 
 -- | This module contains some utility functions to work with different levels
 -- of Pandoc filters. For example, for the conversion from @'Inline' ->
@@ -53,13 +52,13 @@ newtype PartialFilterM m p =
 -- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
 type PartialFilter = PartialFilterM Identity
 
--- | A synonym for @PartialFilter Pandoc@. It encapsulates a monadic
+-- | An alias for @PartialFilter Pandoc@. It encapsulates a monadic
 -- filter @'Pandoc' -> m 'Pandoc'@ acting directly on 'Pandoc'.
 --
 -- * @m@: a monad.
 type PandocFilter = PartialFilter Pandoc
 
--- | A synonym for @PartialFilterM m Pandoc@, a monadic version of
+-- | An alias for @PartialFilterM m Pandoc@, a monadic version of
 -- 'PandocFilter'.
 --
 -- * @m@: a monad.
@@ -71,14 +70,14 @@ applyFilter
   -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
 applyFilter = (runIdentity .) . applyFilterM
 
--- | A synonym for 'applyFilterM'. It can be used when you don't need to apply
+-- | An alias for 'applyFilterM'. It can be used when you don't need to apply
 -- the filter immediately.
 getFilterM
   :: PartialFilterM m p -- ^ A wrapped partial filter.
   -> (p -> m p)         -- ^ Unwrapped filter that can be directly applied to @p@.
 getFilterM = applyFilterM
 
--- | A synonym for 'applyFilter'. It can be used when you don't need to apply
+-- | An alias for 'applyFilter'. It can be used when you don't need to apply
 -- the filter immediately.
 getFilter
   :: PartialFilter p -- ^ A wrapped partial filter.
@@ -97,7 +96,8 @@ instance (Monad m) => Monoid (PartialFilterM m p) where
 -- | A helper typeclass used as a polymorphic constructor of 'PartialFilterM'.
 class ToPartialFilter m f p where
   -- | The actual constructor of 'PartialFilterM'. It takes an ordinary filter
-  -- function and wraps it as a 'PartialFilterM'.
+  -- function @a -> b@ and wraps it as a 'PartialFilterM'. It can also be used
+  -- to convert between different types of @'PartialFilterM' m@.
   mkFilter
     :: f                  -- ^ A partial filter function, usually @a -> a@ for some @'Walkable' a p@.
     -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter.
@@ -113,6 +113,11 @@ instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> [a]) p where
 
 instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
   mkFilter = PartialFilterM . walkM . (fmap concat .) . mapM
+
+-- | This instance can be used to convert @'PartialFilterM' m a@ to
+-- @'PartialFilterM' m b@.
+instance (Monad m, Walkable a b) => ToPartialFilter m (PartialFilterM m a) b where
+  mkFilter = mkFilter . getFilterM
 
 -- | Construct a 'PartialFilterM' from a list of filter functions of the same
 -- type. The final filter is concatenated from left to right such that the
@@ -131,6 +136,12 @@ toFilterM
   => PartialFilter p    -- ^ An ordinary filter.
   -> PartialFilterM m p -- ^ The monadic version.
 toFilterM = PartialFilterM . (return .) . getFilter
+
+-- convertFilter
+--   :: (Monad m, ToPartialFilter m a b)
+--   => PartialFilterM m a    -- ^ An ordinary filter.
+--   -> PartialFilterM m b -- ^ The monadic version.
+-- convertFilter = mkFilter . getFilterM
 
 -- | Apply a list of monadic partial filters sequentially, from left to
 -- right, i.e.  the first element in the list will be applied first and the

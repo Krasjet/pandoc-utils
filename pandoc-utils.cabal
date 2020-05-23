@@ -1,5 +1,5 @@
 name:                pandoc-utils
-version:             0.3.2
+version:             0.3.3
 synopsis:
   Utility functions to work with Pandoc in Haskell applications.
 description:
