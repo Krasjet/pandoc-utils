@@ -27,7 +27,7 @@ beheadFilter = mkFilter behead
 delinkFilter :: PandocFilter
 delinkFilter = mkFilter delink
 ```
-`PandocFilter` is a synonym for `PartialFilter Pandoc`, so you can also have `PartialFilter Inline`, etc. There is also a monadic version called `PartialFilterM`.
+`PandocFilter` is an alias for `PartialFilter Pandoc`, so you can also have `PartialFilter Inline`, etc. There is also a monadic version called `PartialFilterM` for encapsulating monadic filters.
 
 The `PandocFilter` is a monoid so you can do something like,
 ```haskell
@@ -37,6 +37,7 @@ myFilter = beheadFilter <> delinkFilter
 where `myFilter` would apply `beheadFilter` first, then the `delinkFilter`. You can apply the filter using `applyFilter`,
 ```haskell
 import Text.Pandoc
+import Data.Default (def)
 
 mdToHtml
   :: Text                    -- ^ Input markdown string
@@ -46,13 +47,13 @@ mdToHtml md = runPure $ do
   let doc' = applyFilter myFilter doc
   writeHtml5String def doc'
 ```
-or get a unwrapped `Pandoc -> Pandoc` filter using `getFilter`.
+or get an unwrapped `Pandoc -> Pandoc` filter using `getFilter` (this function is also capable of doing implicit conversion from `PartialFilter a` to `b -> b`).
 ```haskell
 myPandocFilter :: Pandoc -> Pandoc
 myPandocFilter = getFilter myFilter
 ```
 
-There is also a function called `applyFilters`, which takes a list of filters and apply it to a `Pandoc` document sequentially, from left to right.
+For applying multiple filters, there is also a function called `applyFilters`, which takes a list of filters and apply it to a `Pandoc` document (or subnode) sequentially, from left to right.
 ```haskell
 myFilters :: [PandocFilter]
 myFilters =

@@ -70,19 +70,25 @@ applyFilter
   -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
 applyFilter = (runIdentity .) . applyFilterM
 
--- | An alias for 'applyFilterM'. It can be used when you don't need to apply
--- the filter immediately.
+-- | It is mostly the same as 'applyFilterM' and should be used when you don't
+-- need to apply the filter immediately. The only difference is that it will
+-- perform an implicit conversion if the requested filter function is of a
+-- different type.
 getFilterM
-  :: PartialFilterM m p -- ^ A wrapped partial filter.
-  -> (p -> m p)         -- ^ Unwrapped filter that can be directly applied to @p@.
-getFilterM = applyFilterM
+  :: (Monad m, Walkable a b)
+  => PartialFilterM m a -- ^ A wrapped partial filter on @a@.
+  -> (b -> m b)         -- ^ Unwrapped filter function that can be directly applied to @b@.
+getFilterM = applyFilterM . mkFilter
 
--- | An alias for 'applyFilter'. It can be used when you don't need to apply
--- the filter immediately.
+-- | It is mostly the same as 'applyFilter' and should be used when you don't
+-- need to apply the filter immediately. The only difference is that it will
+-- perform an implicit conversion if the requested filter function is of a
+-- different type.
 getFilter
-  :: PartialFilter p -- ^ A wrapped partial filter.
-  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
-getFilter = applyFilter
+  :: (Walkable a b)
+  => PartialFilter a -- ^ A wrapped partial filter on @a@.
+  -> (b -> b)        -- ^ Unwrapped filter function that can be directly applied to @b@.
+getFilter = applyFilter . mkFilter
 
 -- | The 'Semigroup' instance of `PartialFilterM`. @f1 <> f2@ will apply @f1@
 -- first followed by @f2@.
@@ -117,7 +123,7 @@ instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
 -- | This instance can be used to convert @'PartialFilterM' m a@ to
 -- @'PartialFilterM' m b@.
 instance (Monad m, Walkable a b) => ToPartialFilter m (PartialFilterM m a) b where
-  mkFilter = mkFilter . getFilterM
+  mkFilter = mkFilter . applyFilterM
 
 -- | Construct a 'PartialFilterM' from a list of filter functions of the same
 -- type. The final filter is concatenated from left to right such that the
@@ -135,13 +141,7 @@ toFilterM
   :: (Monad m)
   => PartialFilter p    -- ^ An ordinary filter.
   -> PartialFilterM m p -- ^ The monadic version.
-toFilterM = PartialFilterM . (return .) . getFilter
-
--- convertFilter
---   :: (Monad m, ToPartialFilter m a b)
---   => PartialFilterM m a    -- ^ An ordinary filter.
---   -> PartialFilterM m b -- ^ The monadic version.
--- convertFilter = mkFilter . getFilterM
+toFilterM = PartialFilterM . (return .) . applyFilter
 
 -- | Apply a list of monadic partial filters sequentially, from left to
 -- right, i.e.  the first element in the list will be applied first and the
@@ -150,7 +150,7 @@ applyFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
   -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
-applyFiltersM = getFilterM . fold
+applyFiltersM = applyFilterM . fold
 
 -- | Apply a list of partial filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
@@ -159,7 +159,7 @@ applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of partial filter.
   -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
-applyFilters = getFilter . fold
+applyFilters = applyFilter . fold
 
 -- | An alias for 'applyFiltersM', used when the filter is not used
 -- immediately.
