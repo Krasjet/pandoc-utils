@@ -68,3 +68,5 @@ mdToHtml' md = runPure $ do
   let doc' = applyFilters myFilters doc
   writeHtml5String def doc'
 ```
+
+For more examples, please read the [spec](https://github.com/Krasjet/pandoc-utils/blob/master/test/Spec.hs).
