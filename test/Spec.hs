@@ -6,13 +6,14 @@ import qualified Data.Text   as T
 import qualified Text.Pandoc as P
 
 import Control.Monad.Trans.Writer
-import Data.Default               (def)
-import Data.Either                (fromRight)
-import Data.Text                  (Text)
+import Data.Default                         (def)
+import Data.Either                          (fromRight)
+import Data.Text                            (Text)
 import Test.Tasty
 import Test.Tasty.Hspec
 import Text.Pandoc.Definition
 import Text.Pandoc.Filter.Utils
+import Text.Pandoc.Filter.Utils.AttrBuilder
 
 -- * Testing data
 
@@ -320,13 +321,44 @@ readmeSpec = parallel $
       fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
       fromRight "" (mdToHtmlCompose readmeText) `shouldBe` expectedHtml
 
+attrBuilderSpec :: Spec
+attrBuilderSpec = parallel $ do
+  let testAttr = ("id", ["test"], [("k", "v")])
+  describe "addClass" $
+    it "adds a new class to attributes" $ do
+      nullAttr `addClass` "test" `shouldBe` ("", ["test"], [])
+      nullAttr `addClass` "test" `addClass` "test2" `shouldBe` ("", ["test2", "test"], [])
+      testAttr `addClass` "test2" `shouldBe` ("id", ["test2", "test"], [("k", "v")])
+
+  describe "addClasses" $
+    it "adds new classes to attributes" $ do
+      nullAttr `addClasses` ["test", "test2"] `shouldBe` ("", ["test", "test2"], [])
+      testAttr `addClasses` ["test1", "test2"] `shouldBe` ("id", ["test1", "test2", "test"], [("k", "v")])
+
+  describe "addKVPair" $
+    it "adds a new kv pair to attributes" $ do
+      nullAttr `addKVPair` ("k", "v") `shouldBe` ("", [], [("k", "v")])
+      testAttr `addKVPair` ("k2", "v2") `shouldBe` ("id", ["test"], [("k2", "v2"), ("k", "v")])
+
+  describe "addKVPairs" $
+    it "adds new kv pairs to attributes" $ do
+      nullAttr `addKVPairs` [("k", "v"), ("k2", "v2")] `shouldBe` ("", [], [("k", "v"), ("k2", "v2")])
+      testAttr `addKVPairs` [("k1", "v1"), ("k2", "v2")] `shouldBe` ("id", ["test"], [("k1", "v1"), ("k2", "v2"), ("k", "v")])
+
+  describe "setId" $
+    it "sets id of attributes" $ do
+      nullAttr `setId` "id" `shouldBe` ("id", [], [])
+      testAttr `setId` "id2" `shouldBe` ("id2", ["test"], [("k", "v")])
+
 main :: IO ()
 main = do
   testConvert <- testSpec "Filter conversion" convertSpec
   testCompose <- testSpec "Filter composition" composeSpec
   testReadme <- testSpec "Readme examples" readmeSpec
+  testAttrBuilder <- testSpec "Attr builder" attrBuilderSpec
   defaultMain $ testGroup "Tests"
     [ testConvert
     , testCompose
     , testReadme
+    , testAttrBuilder
     ]
