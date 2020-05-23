@@ -7,7 +7,8 @@
 module Text.Pandoc.Utils (
   -- * Conversions
   ToString (..),
-  ToText (..)
+  ToText (..),
+  fromString,
   ) where
 
 import qualified Data.Text as T
