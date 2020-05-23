@@ -1,7 +1,7 @@
 name:                pandoc-utils
-version:             0.3.0
+version:             0.3.1
 synopsis:
-  A few utility functions to work with Pandoc in Haskell.
+  Utility functions to work with Pandoc in Haskell applications.
 description:
   This package contains some useful functions for writing [Pandoc](https://pandoc.org/)
   filters and integrating Pandoc into Haskell applications such
