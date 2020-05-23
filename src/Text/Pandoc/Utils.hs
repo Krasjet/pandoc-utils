@@ -8,7 +8,9 @@ module Text.Pandoc.Utils (
   -- * Conversions
   ToString (..),
   ToText (..),
-  fromString,
+  IsText (..),
+  -- * Reexport from Data.String
+  IsString (..),
   ) where
 
 import qualified Data.Text as T
@@ -37,3 +39,14 @@ instance Char ~ c => ToText [c] where
 
 instance ToText Text where
   toText = id
+
+-- | A helper typeclass for converting 'Text' to either 'String' or 'Text'.
+class IsText a where
+  -- | Convert from 'Text' to strings
+  fromText :: Text -> a
+
+instance Char ~ c => IsText [c] where
+  fromText = T.unpack
+
+instance IsText Text where
+  fromText = id
