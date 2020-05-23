@@ -237,6 +237,38 @@ convertSpec = parallel $ do
       bl `shouldBe` expectedInlinePartial
       s' `shouldBe` T.pack "abcd"
 
+  describe "getFilter" $ do
+    it "converts PartialFilter a to a -> a" $ do
+      let fInline = mkFilter capFilterInline :: PartialFilter Inline
+      getFilter fInline (Str "abcd") `shouldBe` Str "ABCD"
+
+    it "converts PartialFilterM m a to a -> m a" $ do
+      let fInline :: PartialFilterM (Writer Text) Inline
+          fInline = mkFilter extractFilterInlineM
+      let (doc, s) = runWriter $ getFilterM fInline (Str "abcd")
+      doc `shouldBe` Str "ABCD"
+      s `shouldBe` T.pack "abcd"
+
+    it "converts PartialFilter a to b -> b" $ do
+      let fInline = mkFilter capFilterInline :: PartialFilter Inline
+          fBlock = getFilter fInline         :: Block -> Block
+          fPandoc = getFilter fInline        :: Pandoc -> Pandoc
+      fBlock blockPara `shouldBe` expectedInlinePartial
+      fPandoc docPara `shouldBe` expectedInline
+
+    it "converts PartialFilterM m a to b -> m b" $ do
+      let fInline :: PartialFilterM (Writer Text) Inline
+          fInline = mkFilter extractFilterInlineM
+          fBlock  = getFilterM fInline :: Block  -> Writer Text Block
+          fPandoc = getFilterM fInline :: Pandoc -> Writer Text Pandoc
+      let (doc, s) = runWriter $ fPandoc docPara
+      doc `shouldBe` expectedInline
+      s `shouldBe` T.pack "abcd"
+
+      let (bl, s') = runWriter $ fBlock blockPara
+      bl `shouldBe` expectedInlinePartial
+      s' `shouldBe` T.pack "abcd"
+
   describe "mkConcatedFilter" $ do
     let cap = mkConcatedFilter [uncapFilterInline, capFilterInline]
         uncap = mkConcatedFilter [capFilterInline, uncapFilterInline]
