@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 
 -- | This module contains some utility functions to work with different levels
 -- of Pandoc filters. For example, for the conversion from @'Inline' ->
@@ -20,9 +21,10 @@ module Text.Pandoc.Filter.Utils (
   -- * Filter conversion
   getFilterM,
   getFilter,
-  concatFiltersM,
-  concatFilters,
+  getConcatedFilterM,
+  getConcatedFilter,
   ToPartialFilter (..),
+  mkConcatedFilter,
   toFilterM,
   ) where
 
@@ -112,12 +114,22 @@ instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> [a]) p where
 instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
   mkFilter = PartialFilterM . walkM . (fmap concat .) . mapM
 
+-- | Construct a 'PartialFilterM' from a list of filter functions of the same
+-- type. The final filter is concatenated from left to right such that the
+-- first element in the list will be applied first and the last element will be
+-- applied at the end.
+mkConcatedFilter
+  :: (Monad m, ToPartialFilter m f p, Foldable t)
+  => t f                -- ^ A list of filter functions of the same type.
+  -> PartialFilterM m p -- ^ Concatenated filter.
+mkConcatedFilter = foldMap mkFilter
+
 -- | Convert an ordinary 'PartialFilter' to the monadic version
 -- 'PartialFilterM'.
 toFilterM
   :: (Monad m)
-  => PartialFilter a    -- ^ An ordinary filter.
-  -> PartialFilterM m a -- ^ The monadic version.
+  => PartialFilter p    -- ^ An ordinary filter.
+  -> PartialFilterM m p -- ^ The monadic version.
 toFilterM = PartialFilterM . (return .) . getFilter
 
 -- | Apply a list of monadic partial filters sequentially, from left to
@@ -140,15 +152,15 @@ applyFilters = getFilter . fold
 
 -- | An alias for 'applyFiltersM', used when the filter is not used
 -- immediately.
-concatFiltersM
+getConcatedFilterM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
   -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
-concatFiltersM = applyFiltersM
+getConcatedFilterM = applyFiltersM
 
 -- | An alias for 'applyFilters', used when the filter is not used immediately.
-concatFilters
+getConcatedFilter
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of partial filter.
   -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
-concatFilters = applyFilters
+getConcatedFilter = applyFilters
