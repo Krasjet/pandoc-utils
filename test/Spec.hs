@@ -72,6 +72,10 @@ capFilterInline :: Inline -> Inline
 capFilterInline (Str str) = Str $ T.toUpper str
 capFilterInline x         = x
 
+uncapFilterInline :: Inline -> Inline
+uncapFilterInline (Str str) = Str $ T.toLower str
+uncapFilterInline x         = x
+
 unParaFilterBlock :: Block -> Block
 unParaFilterBlock (Para ils) = Plain ils
 unParaFilterBlock x          = x
@@ -212,6 +216,13 @@ convertSpec = parallel $ do
       let (bl, s) = runWriter $ applyFilterM (mkFilter extractFilterInlineML) blockPara
       bl `shouldBe` expectedInlinePartialL
       s `shouldBe` T.pack "abcd"
+
+  describe "mkConcatedFilter" $ do
+    let cap = mkConcatedFilter [uncapFilterInline, capFilterInline]
+        uncap = mkConcatedFilter [capFilterInline, uncapFilterInline]
+    it "concats filter from left to right" $ do
+      applyFilter cap docPara `shouldBe` expectedInline
+      applyFilter uncap docPara `shouldBe` docPara
 
   describe "toFilterM" $
     it "converts a -> a filter to a -> m a filter" $ do
