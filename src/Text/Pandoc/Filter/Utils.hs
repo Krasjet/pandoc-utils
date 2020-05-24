@@ -67,7 +67,8 @@ type PandocFilterM m = PartialFilterM m Pandoc
 -- | Apply an ordinary filter to @p@, which returns @p@ directly.
 applyFilter
   :: PartialFilter p -- ^ A wrapped partial filter.
-  -> (p -> p)        -- ^ Unwrapped filter that can be directly applied to @p@.
+  -> p               -- ^ 'Pandoc' AST node.
+  -> p               -- ^ Transformed node.
 applyFilter = (runIdentity .) . applyFilterM
 
 -- | It is mostly the same as 'applyFilterM' and should be used when you don't
@@ -149,7 +150,8 @@ toFilterM = PartialFilterM . (return .) . applyFilter
 applyFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
-  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
+  -> p                      -- ^ 'Pandoc' AST node.
+  -> m p                    -- ^ Transformed node.
 applyFiltersM = applyFilterM . fold
 
 -- | Apply a list of partial filters sequentially, from left to right, i.e.
@@ -158,7 +160,8 @@ applyFiltersM = applyFilterM . fold
 applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of partial filter.
-  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
+  -> p                   -- ^ 'Pandoc' AST node.
+  -> p                   -- ^ Transformed node.
 applyFilters = applyFilter . fold
 
 -- | An alias for 'applyFiltersM', used when the filter is not used

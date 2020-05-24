@@ -1,3 +1,6 @@
+build-type:          Simple
+cabal-version:       2.0
+
 name:                pandoc-utils
 version:             0.4.0
 synopsis:
@@ -16,10 +19,15 @@ author:              Krasjet
 maintainer:          Krasjet
 copyright:           Copyright (c) 2020 Krasjet
 homepage:            https://github.com/Krasjet/pandoc-utils
+bug-reports:         https://github.com/Krasjet/pandoc-utils/issues
 category:            Text
+extra-source-files:
+    CHANGELOG.md
+    README.md
 
-build-type:          Simple
-cabal-version:       2.0
+source-repository head
+  type:     git
+  location: git://github.com/Krasjet/pandoc-utils.git
 
 library
   hs-source-dirs:      src
