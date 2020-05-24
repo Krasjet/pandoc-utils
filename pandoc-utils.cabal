@@ -2,15 +2,19 @@ build-type:          Simple
 cabal-version:       2.0
 
 name:                pandoc-utils
-version:             0.4.0
+version:             0.5.1
 synopsis:
   Utility functions to work with Pandoc in Haskell applications.
 description:
   This package contains some useful functions for writing [Pandoc](https://pandoc.org/)
-  filters and integrating Pandoc into Haskell applications such
-  as [Hakyll](https://jaspervdj.be/hakyll/). It provides a
-  composable wrapper for filters acting on nodes of the [Pandoc
-  AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html).
+  filters and integrating Pandoc into Haskell applications such as [Hakyll](https://jaspervdj.be/hakyll/)
+  and web servers.
+  .
+  It provides a composable wrapper for filters acting on nodes of the [Pandoc
+  AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
+  and a few functions to convert between filters. The package also provides an
+  attributes builder to work with attributes and some string utility functions
+  to handle the switch from 'String' to 'Text' in pandoc-types 1.20.
   .
   For more examples, please see the [README](https://github.com/Krasjet/pandoc-utils) on GitHub.
 license:             MIT
@@ -35,6 +39,7 @@ library
   ghc-options:         -Wall
   exposed-modules:
       Text.Pandoc.Utils
+      Text.Pandoc.Utils.String
       Text.Pandoc.Filter.Utils
       Text.Pandoc.Filter.Utils.AttrBuilder
   build-depends:
