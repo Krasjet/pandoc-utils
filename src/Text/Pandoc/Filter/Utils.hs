@@ -5,23 +5,34 @@
 -- | This module contains some utility functions to work with different levels
 -- of Pandoc filters. For example, for the conversion from @'Inline' ->
 -- ['Inline']@ to @'Pandoc' -> 'Pandoc'@ filter.
+--
+-- If you don't need to compose filters and only want to convert between Pandoc
+-- filter functions, just use 'convertFilter' and 'convertFilterM'.
+--
+-- However, if you are working with multiple Pandoc filters of different type
+-- and want to compose them, this module also provides a monoid wrapper type
+-- 'PartialFilterM', which I call a "wrapped filter", and a few functions to
+-- apply, compose, and convert them.
 module Text.Pandoc.Filter.Utils (
-  -- * Definitions
-  PartialFilterM,
+  -- * Filter function conversion
+  convertFilter,
+  convertFilterM,
+  -- * Wrapped filter definitions
   PartialFilter,
-  PandocFilterM,
   PandocFilter,
-  -- * Filter application
-  applyFilterM,
+  PartialFilterM,
+  PandocFilterM,
+  -- * Wrapped filter application/composition
   applyFilter,
-  -- * Filter composition
-  applyFiltersM,
   applyFilters,
-  -- * Filter conversion
-  getFilterM,
+  applyFilterM,
+  applyFiltersM,
+  -- * Wrapped filter → filter function
   getFilter,
-  getConcatedFilterM,
   getConcatedFilter,
+  getFilterM,
+  getConcatedFilterM,
+  -- * Wrapped filter conversion
   ToPartialFilter (..),
   mkConcatedFilter,
   toFilterM,
@@ -35,7 +46,8 @@ import Text.Pandoc.Walk
 
 -- | @PartialFilterM m p@ is a wrapper for any monadic @p -> m p@ Pandoc
 -- filters acting on a subnode (e.g. 'Inline' or 'Block') of the 'Pandoc'
--- abstract syntax tree.
+-- abstract syntax tree. On this page, we will call it a "wrapped" filter to
+-- distinguish it from filter functions @a -> m b@.
 --
 -- * @m@: a monad.
 -- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
@@ -47,7 +59,8 @@ newtype PartialFilterM m p =
 
 -- | @PartialFilter p@ is a wrapper for ordinary @p -> p@ Pandoc filters acting
 -- on a subnode (e.g. 'Inline' or 'Block') of the 'Pandoc' abstract syntax
--- tree.
+-- tree. On this page, we will call it a "wrapped" filter to distinguish it
+-- from filter functions @a -> b@.
 --
 -- * @p@: the type of a subnode of 'Pandoc' (e.g. 'Inline').
 type PartialFilter = PartialFilterM Identity
@@ -64,31 +77,32 @@ type PandocFilter = PartialFilter Pandoc
 -- * @m@: a monad.
 type PandocFilterM m = PartialFilterM m Pandoc
 
--- | Apply an ordinary filter to @p@, which returns @p@ directly.
+-- | Apply a wrapped filter to @p@, which returns @p@ directly.
 applyFilter
-  :: PartialFilter p -- ^ A wrapped partial filter.
+  :: PartialFilter p -- ^ A wrapped filter.
   -> p               -- ^ 'Pandoc' AST node.
   -> p               -- ^ Transformed node.
 applyFilter = (runIdentity .) . applyFilterM
 
--- | It is mostly the same as 'applyFilterM' and should be used when you don't
--- need to apply the filter immediately. The only difference is that it will
--- perform an implicit conversion if the requested filter function is of a
--- different type.
+-- | It is mostly the same as 'applyFilterM', which converts a wrapped monadic
+-- filter to a monadic filter function, but it should be used when you don't
+-- need to apply the filter immediately. There is a slight difference in that
+-- it will perform an implicit conversion if the requested filter function is
+-- of a different type.
 getFilterM
   :: (Monad m, Walkable a b)
-  => PartialFilterM m a -- ^ A wrapped partial filter on @a@.
-  -> (b -> m b)         -- ^ Unwrapped filter function that can be directly applied to @b@.
+  => PartialFilterM m a -- ^ A wrapped filter on @a@.
+  -> (b -> m b)         -- ^ Filter function that can be directly applied to @b@.
 getFilterM = applyFilterM . mkFilter
 
--- | It is mostly the same as 'applyFilter' and should be used when you don't
--- need to apply the filter immediately. The only difference is that it will
--- perform an implicit conversion if the requested filter function is of a
--- different type.
+-- | It is mostly the same as 'applyFilter', which converts a wrapped filter to
+-- a filter function, but it should be used when you don't need to apply the
+-- filter immediately. There is a slight difference in that it will perform an
+-- implicit conversion if the requested filter function is of a different type.
 getFilter
   :: (Walkable a b)
   => PartialFilter a -- ^ A wrapped partial filter on @a@.
-  -> (b -> b)        -- ^ Unwrapped filter function that can be directly applied to @b@.
+  -> (b -> b)        -- ^ Filter function that can be directly applied to @b@.
 getFilter = applyFilter . mkFilter
 
 -- | The 'Semigroup' instance of `PartialFilterM`. @f1 <> f2@ will apply @f1@
@@ -103,11 +117,12 @@ instance (Monad m) => Monoid (PartialFilterM m p) where
 -- | A helper typeclass used as a polymorphic constructor of 'PartialFilterM'.
 class ToPartialFilter m f p where
   -- | The actual constructor of 'PartialFilterM'. It takes an ordinary filter
-  -- function @a -> b@ and wraps it as a 'PartialFilterM'. It can also be used
-  -- to convert between different types of @'PartialFilterM' m@.
+  -- function @a -> b@ and wraps it as a wrapped filter 'PartialFilterM'. It
+  -- can also be used to convert between different types of @'PartialFilterM'
+  -- m@.
   mkFilter
-    :: f                  -- ^ A partial filter function, usually @a -> a@ for some @'Walkable' a p@.
-    -> PartialFilterM m p -- ^ Wrapped partial Pandoc filter.
+    :: f                  -- ^ A filter function, usually @a -> a@ for some @'Walkable' a p@.
+    -> PartialFilterM m p -- ^ Wrapped Pandoc filter.
 
 instance (Monad m, Walkable a p) => ToPartialFilter m (a -> a) p where
   mkFilter = PartialFilterM . (return .) . walk
@@ -126,17 +141,17 @@ instance (Monad m, Walkable [a] p) => ToPartialFilter m (a -> m [a]) p where
 instance (Monad m, Walkable a b) => ToPartialFilter m (PartialFilterM m a) b where
   mkFilter = mkFilter . applyFilterM
 
--- | Construct a 'PartialFilterM' from a list of filter functions of the same
--- type. The final filter is concatenated from left to right such that the
--- first element in the list will be applied first and the last element will be
--- applied at the end.
+-- | Construct a wrapped filter 'PartialFilterM' from a list of filter
+-- functions of the same type. The final filter is concatenated from left to
+-- right such that the first element in the list will be applied first and the
+-- last element will be applied at the end.
 mkConcatedFilter
   :: (Monad m, ToPartialFilter m f p, Foldable t)
   => t f                -- ^ A list of filter functions of the same type.
   -> PartialFilterM m p -- ^ Concatenated filter.
 mkConcatedFilter = foldMap mkFilter
 
--- | Convert an ordinary 'PartialFilter' to the monadic version
+-- | Convert an ordinary wrapped filter 'PartialFilter' to the monadic version
 -- 'PartialFilterM'.
 toFilterM
   :: (Monad m)
@@ -144,22 +159,22 @@ toFilterM
   -> PartialFilterM m p -- ^ The monadic version.
 toFilterM = PartialFilterM . (return .) . applyFilter
 
--- | Apply a list of monadic partial filters sequentially, from left to
--- right, i.e.  the first element in the list will be applied first and the
--- last element will be applied at the end.
+-- | Apply a list of monadic wrapped filters sequentially, from left to right,
+-- i.e. the first element in the list will be applied first and the last
+-- element will be applied at the end.
 applyFiltersM
   :: (Foldable t, Monad m)
-  => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
+  => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
   -> p                      -- ^ 'Pandoc' AST node.
   -> m p                    -- ^ Transformed node.
 applyFiltersM = applyFilterM . fold
 
--- | Apply a list of partial filters sequentially, from left to right, i.e.
+-- | Apply a list of wrapped filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
 -- will be applied at the end.
 applyFilters
   :: (Foldable t)
-  => t (PartialFilter p) -- ^ A list of partial filter.
+  => t (PartialFilter p) -- ^ A list of wrapped filter.
   -> p                   -- ^ 'Pandoc' AST node.
   -> p                   -- ^ Transformed node.
 applyFilters = applyFilter . fold
@@ -175,6 +190,20 @@ getConcatedFilterM = applyFiltersM
 -- | An alias for 'applyFilters', used when the filter is not used immediately.
 getConcatedFilter
   :: (Foldable t)
-  => t (PartialFilter p) -- ^ A list of partial filter.
-  -> (p -> p)            -- ^ Unwrapped filter applicable to @p@ directly.
+  => t (PartialFilter p) -- ^ A list of wrapped filter.
+  -> (p -> p)            -- ^ Filter function applicable to @p@ directly.
 getConcatedFilter = applyFilters
+
+-- | Conversion between monadic filter functions.
+convertFilterM
+  :: (Monad m, ToPartialFilter m f p)
+  => f                -- ^ A monadic filter function.
+  -> (p -> m p)       -- ^ Monadic filter function acting on @p@.
+convertFilterM = applyFilterM . mkFilter
+
+-- | Conversion between filter functions.
+convertFilter
+  :: (ToPartialFilter Identity f p)
+  => f        -- ^ A filter function.
+  -> (p -> p) -- ^ Filter function acting on @p@.
+convertFilter = applyFilter . mkFilter
