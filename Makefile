@@ -1,4 +1,4 @@
-.PHONY: test build ghci ghci-test ghcid
+.PHONY: test build ghci ghci-test ghcid release doc
 
 test:
 	@stack test
@@ -20,3 +20,7 @@ ghcid:
 
 doc:
 	@stack haddock --open pandoc-utils
+
+release:
+	@cabal sdist
+	@cabal haddock --haddock-for-hackage --enable-doc --haddock-hyperlinked-source

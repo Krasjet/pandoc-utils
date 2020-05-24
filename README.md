@@ -5,9 +5,13 @@
 
 This package contains some useful functions for writing
 [Pandoc](https://pandoc.org/) filters and integrating Pandoc into Haskell
-applications such as [Hakyll](https://jaspervdj.be/hakyll/). It provides a
-composable wrapper for filters acting on nodes of the [Pandoc
-AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html).
+applications such as [Hakyll](https://jaspervdj.be/hakyll/).
+
+It provides a composable wrapper for filters acting on nodes of the [Pandoc
+AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
+and a few functions to convert between filters. The package also provides an
+attributes builder to work with attributes and some string utility functions to
+handle the switch from `String` to `Text` in pandoc-types 1.20.
 
 ## Filter conversion/composition
 
@@ -27,7 +31,7 @@ Since `behead` has type `Block -> Block`, while `delink` has type `Inline ->
 [Inline]`, they are not naturally composable. However, this package provides a
 utility function `mkFilter` to convert them into a wrapped `PandocFilter`.
 ```haskell
-import Text.Pandoc.Filter.Utils
+import Text.Pandoc.Utils
 
 beheadFilter :: PandocFilter
 beheadFilter = mkFilter behead
@@ -100,7 +104,7 @@ mdToHtml' md = runPure $ do
 pandoc-utils also provides an attribute builder for handling attributes. You
 can create a new attributes by
 ```haskell
-ghci> import Text.Pandoc.Filter.Utils.AttrBuilder
+ghci> import Text.Pandoc.Utils
 ghci> import Text.Pandoc.Definition
 ghci> nullAttr `setId` "id" `addClass` "class" `addKVPair` ("key","value")
 ("id",["class"],[("key","value")])

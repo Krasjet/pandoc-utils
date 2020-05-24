@@ -12,8 +12,7 @@ import Data.Text                            (Text)
 import Test.Tasty
 import Test.Tasty.Hspec
 import Text.Pandoc.Definition
-import Text.Pandoc.Filter.Utils
-import Text.Pandoc.Filter.Utils.AttrBuilder
+import Text.Pandoc.Utils
 
 -- * Testing data
 

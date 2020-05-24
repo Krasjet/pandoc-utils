@@ -9,7 +9,7 @@ module Text.Pandoc.Filter.Utils.AttrBuilder (
   setId,
 ) where
 
-import Text.Pandoc.Utils
+import Text.Pandoc.Utils.String
 
 import Data.Bifunctor         (bimap, first, second)
 import Data.Text              (Text)
