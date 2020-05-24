@@ -238,6 +238,41 @@ convertSpec = parallel $ do
       bl `shouldBe` expectedInlinePartial
       s' `shouldBe` T.pack "abcd"
 
+  describe "convertFilter" $ do
+    it "converts a -> a filter to Pandoc -> Pandoc filter" $ do
+      convertFilter capFilterInline docPara `shouldBe` expectedInline
+      convertFilter unParaFilterBlock docPara `shouldBe` expectedBlock
+
+    it "converts a -> a filter to b -> b partial filter" $
+      convertFilter capFilterInline blockPara `shouldBe` expectedInlinePartial
+
+    it "converts a -> [a] filter to Pandoc -> Pandoc filter" $ do
+      convertFilter dupFilterInline docPara `shouldBe` expectedInlineL
+      convertFilter dupFilterBlock docPara `shouldBe` expectedBlockL
+
+    it "converts a -> [a] filter to b -> b partial filter" $
+      convertFilter dupFilterInline blockPara `shouldBe` expectedInlinePartialL
+
+    it "converts a -> m a filter to Pandoc -> m Pandoc filter" $ do
+      let (doc, s) = runWriter $ convertFilterM extractFilterInlineM docPara
+      doc `shouldBe` expectedInline
+      s `shouldBe` T.pack "abcd"
+
+    it "converts a -> m a filter to b -> m b filter" $ do
+      let (bl, s) = runWriter $ convertFilterM extractFilterInlineM blockPara
+      bl `shouldBe` expectedInlinePartial
+      s `shouldBe` T.pack "abcd"
+
+    it "converts a -> m [a] filter to Pandoc -> m Pandoc filter" $ do
+      let (doc, s) = runWriter $ convertFilterM extractFilterInlineML docPara
+      doc `shouldBe` expectedInlineL
+      s `shouldBe` T.pack "abcd"
+
+    it "converts a -> m [a] filter to b -> m b filter" $ do
+      let (bl, s) = runWriter $ convertFilterM extractFilterInlineML blockPara
+      bl `shouldBe` expectedInlinePartialL
+      s `shouldBe` T.pack "abcd"
+
   describe "getFilter" $ do
     it "converts PartialFilter a to a -> a" $ do
       let fInline = mkFilter capFilterInline :: PartialFilter Inline
@@ -294,12 +329,10 @@ composeSpec = parallel $ do
     it "applys merge correctly" $
       applyFilter merge compPara2 `shouldBe` expectedMerge
 
-  describe "applyFilters and monoid" $ do
+  describe "applyFilters" $ do
     it "applys PartialFilter composition from left to right" $ do
       applyFilter (dup <> merge) compPara `shouldBe` expectedDupMerge
       applyFilter (merge <> dup) compPara `shouldBe` expectedMergeDup
-      applyFilters [dup, merge] compPara `shouldBe` expectedDupMerge
-      applyFilters [merge, dup] compPara `shouldBe` expectedMergeDup
 
     it "applys PartialFilterM composition from left to right" $ do
       let (doc, s) = runWriter $ applyFilterM (extract <> toFilterM dup) compPara
@@ -307,6 +340,51 @@ composeSpec = parallel $ do
       s `shouldBe` T.pack "abcd"
 
       let (doc', s') = runWriter $ applyFilterM (toFilterM dup <> extract) compPara
+      doc' `shouldBe` expectedDup
+      s' `shouldBe` T.pack "abcdabcd"
+
+  describe "monoid instance" $ do
+    it "applys PartialFilter composition from left to right" $ do
+      applyFilters [dup, merge] compPara `shouldBe` expectedDupMerge
+      applyFilters [merge, dup] compPara `shouldBe` expectedMergeDup
+
+    it "applys PartialFilterM composition from left to right" $ do
+      let (doc, s) = runWriter $ applyFiltersM [extract, toFilterM dup] compPara
+      doc `shouldBe` expectedDup
+      s `shouldBe` T.pack "abcd"
+
+      let (doc', s') = runWriter $ applyFiltersM [toFilterM dup, extract] compPara
+      doc' `shouldBe` expectedDup
+      s' `shouldBe` T.pack "abcdabcd"
+
+  let dupInl = mkFilter dupFilterInline     :: PartialFilter [Inline]
+      mergeInl = mkFilter mergeFilterInline :: PartialFilter [Inline]
+      extractInl = mkFilter extractFilter   :: PartialFilterM (Writer Text) [Inline]
+
+  describe "getConcatedFilter" $ do
+    it "converts [PartialFilter a] to a -> a, applied from left to right" $ do
+      getConcatedFilter [dupInl, mergeInl] [Str "abcd"] `shouldBe` [Str "abcdabcd"]
+      getConcatedFilter [mergeInl, dupInl] [Str "abcd"] `shouldBe` [Str "abcd", Str "abcd"]
+
+    it "converts [PartialFilterM m a] to a -> m a, applied from left to right" $ do
+      let (doc, s) = runWriter $ getConcatedFilterM [extractInl, toFilterM dupInl] [Str "abcd"]
+      doc `shouldBe` [Str "abcd", Str "abcd"]
+      s `shouldBe` T.pack "abcd"
+
+      let (doc', s') = runWriter $ getConcatedFilterM [toFilterM dupInl, extractInl] [Str "abcd"]
+      doc' `shouldBe` [Str "abcd", Str "abcd"]
+      s' `shouldBe` T.pack "abcdabcd"
+
+    it "converts [PartialFilter a] to b -> b, applied from left to right" $ do
+      getConcatedFilter [dupInl, mergeInl] compPara `shouldBe` expectedDupMerge
+      getConcatedFilter [mergeInl, dupInl] compPara `shouldBe` expectedMergeDup
+
+    it "converts [PartialFilterM m a] to b -> m b, applied from left to right" $ do
+      let (doc, s) = runWriter $ getConcatedFilterM [extractInl, toFilterM dupInl] compPara
+      doc `shouldBe` expectedDup
+      s `shouldBe` T.pack "abcd"
+
+      let (doc', s') = runWriter $ getConcatedFilterM [toFilterM dupInl, extractInl] compPara
       doc' `shouldBe` expectedDup
       s' `shouldBe` T.pack "abcdabcd"
 
