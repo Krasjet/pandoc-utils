@@ -1,5 +1,9 @@
 # Releases
 
+## pandoc-utils 0.7.0 (2020-5-24)
+
+- Rename `seqFilters` to `sequenceFilters` to avoid conflict with `seq`.
+
 ## pandoc-utils 0.6.1 (2020-5-24)
 
 - Fix the reference to `applyFilters` in readme.

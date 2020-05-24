@@ -174,7 +174,7 @@ mdToHtml
   -> Either P.PandocError Text -- ^ Html string or error
 mdToHtml md = P.runPure $ do
   doc <- P.readMarkdown def md
-  let doc' = seqFilters [beheadFilter, delinkFilter] doc
+  let doc' = sequenceFilters [beheadFilter, delinkFilter] doc
   P.writeHtml5String def doc'
 
 mdToHtmlCompose
@@ -334,7 +334,7 @@ composeSpec = parallel $ do
     it "applys merge correctly" $
       applyFilter merge compPara2 `shouldBe` expectedMerge
 
-  describe "seqFilters" $ do
+  describe "sequenceFilters" $ do
     it "applys PartialFilter composition from left to right" $ do
       applyFilter (dup <> merge) compPara `shouldBe` expectedDupMerge
       applyFilter (merge <> dup) compPara `shouldBe` expectedMergeDup
@@ -350,15 +350,15 @@ composeSpec = parallel $ do
 
   describe "monoid instance" $ do
     it "applys PartialFilter composition from left to right" $ do
-      seqFilters [dup, merge] compPara `shouldBe` expectedDupMerge
-      seqFilters [merge, dup] compPara `shouldBe` expectedMergeDup
+      sequenceFilters [dup, merge] compPara `shouldBe` expectedDupMerge
+      sequenceFilters [merge, dup] compPara `shouldBe` expectedMergeDup
 
     it "applys PartialFilterM composition from left to right" $ do
-      let (doc, s) = runWriter $ seqFiltersM [extract, toFilterM dup] compPara
+      let (doc, s) = runWriter $ sequenceFiltersM [extract, toFilterM dup] compPara
       doc `shouldBe` expectedDup
       s `shouldBe` T.pack "abcd"
 
-      let (doc', s') = runWriter $ seqFiltersM [toFilterM dup, extract] compPara
+      let (doc', s') = runWriter $ sequenceFiltersM [toFilterM dup, extract] compPara
       doc' `shouldBe` expectedDup
       s' `shouldBe` T.pack "abcdabcd"
 
@@ -397,7 +397,7 @@ readmeSpec :: Spec
 readmeSpec = parallel $
   describe "readme example" $ do
     it "processes filter examples correctly on AST level" $ do
-      seqFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
+      sequenceFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
       applyFilter myFilter readmeDoc `shouldBe` expectedDoc
       (delinkPandoc . beheadPandoc) readmeDoc `shouldBe` expectedDoc
 
