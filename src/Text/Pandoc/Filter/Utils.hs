@@ -194,23 +194,37 @@ applyFilters
   -> p                   -- ^ Transformed node.
 applyFilters = applyFilter . fold
 
--- | An alias for 'applyFiltersM', used when the filter is not used
--- immediately.
+-- | It is mostly the same as 'applyFiltersM', which converts a list of wrapped
+-- monadic filter to a monadic filter function, but it should be used when you
+-- don't need to apply the filter immediately. There is a slight difference in
+-- that it will perform an implicit conversion if the requested filter function
+-- is of a different type.
+--
+-- For example, it can be used to convert a list of wrapped monadic filter
+-- @['PartialFilterM' 'IO' 'Inline']@ to a filter function @'Block' -> 'IO'
+-- 'Block'@.
 getConcatedFilterM
-  :: (Foldable t, Monad m)
-  => t (PartialFilterM m p) -- ^ A list of monadic partial filters.
-  -> (p -> m p)             -- ^ Unwrapped monadic filter applicable to @p@ directly.
-getConcatedFilterM = applyFiltersM
+  :: (Foldable t, Monad m, Walkable a b)
+  => t (PartialFilterM m a) -- ^ A list of monadic partial filters on @a@.
+  -> (b -> m b)             -- ^ Monadic filter function applicable to @b@ directly.
+getConcatedFilterM = applyFilterM . mkConcatedFilter
 
--- | An alias for 'applyFilters', used when the filter is not used immediately.
+-- | It is mostly the same as 'applyFilters', which converts a list of wrapped
+-- filter to a filter function, but it should be used when you don't need to
+-- apply the filter immediately. There is a slight difference in that it will
+-- perform an implicit conversion if the requested filter function is of a
+-- different type.
+--
+-- For example, it can be used to convert a list of wrapped filter
+-- @['PartialFilter' 'Inline']@ to a filter function @'Block' -> 'Block'@.
 getConcatedFilter
-  :: (Foldable t)
-  => t (PartialFilter p) -- ^ A list of wrapped filter.
-  -> (p -> p)            -- ^ Filter function applicable to @p@ directly.
-getConcatedFilter = applyFilters
+  :: (Foldable t, Walkable a b)
+  => t (PartialFilter a) -- ^ A list of wrapped filter acting on @a@
+  -> (b -> b)            -- ^ Filter function applicable to @b@ directly.
+getConcatedFilter = applyFilter . mkConcatedFilter
 
 -- | Conversion between monadic filter functions, e.g. from @'Inline' ->
--- 'IO' ['Inline']@ filter to @'Pandoc' -> 'IO' 'Pandoc'@ filter
+-- 'IO' ['Inline']@ filter to @'Pandoc' -> 'IO' 'Pandoc'@ filter.
 convertFilterM
   :: (Monad m, ToPartialFilter m f p)
   => f                -- ^ A monadic filter function.
@@ -218,7 +232,7 @@ convertFilterM
 convertFilterM = applyFilterM . mkFilter
 
 -- | Conversion between filter functions, e.g. from @'Inline' -> ['Inline']@
--- filter to @'Pandoc' -> 'Pandoc'@ filter
+-- filter to @'Pandoc' -> 'Pandoc'@ filter.
 convertFilter
   :: (ToPartialFilter Identity f p)
   => f        -- ^ A filter function.
