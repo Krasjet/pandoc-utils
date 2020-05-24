@@ -80,7 +80,7 @@ delinkPandoc = convertFilter delink
 This function is slightly more powerful than `walk` and `walkM` in that it is
 also able to handle filter functions of type `a -> [a]` and `a -> m [a]`.
 
-For applying multiple filters, there is also a function called `seqFilters`,
+For applying multiple filters, there is also a function called `sequenceFilters`,
 which takes a list of wrapped filters and apply it to a `Pandoc` document (or
 subnode) sequentially, from left to right.
 ```haskell
@@ -95,7 +95,7 @@ mdToHtml'
   -> Either PandocError Text -- ^ Html string or error
 mdToHtml' md = runPure $ do
   doc <- readMarkdown def md
-  let doc' = seqFilters myFilters doc
+  let doc' = sequenceFilters myFilters doc
   writeHtml5String def doc'
 ```
 

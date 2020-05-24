@@ -27,9 +27,9 @@ module Text.Pandoc.Filter.Utils (
   mkConcatedFilter,
   -- * Wrapped filter application/composition
   applyFilter,
-  seqFilters,
+  sequenceFilters,
   applyFilterM,
-  seqFiltersM,
+  sequenceFiltersM,
   -- * Wrapped filter → filter function
   getFilter,
   getConcatedFilter,
@@ -180,22 +180,22 @@ toFilterM = PartialFilterM . (return .) . applyFilter
 -- | Apply a list of monadic wrapped filters sequentially, from left to right,
 -- i.e. the first element in the list will be applied first and the last
 -- element will be applied at the end.
-seqFiltersM
+sequenceFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
   -> p                      -- ^ 'Pandoc' AST node.
   -> m p                    -- ^ Transformed node.
-seqFiltersM = applyFilterM . fold
+sequenceFiltersM = applyFilterM . fold
 
 -- | Apply a list of wrapped filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
 -- will be applied at the end.
-seqFilters
+sequenceFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of wrapped filter.
   -> p                   -- ^ 'Pandoc' AST node.
   -> p                   -- ^ Transformed node.
-seqFilters = applyFilter . fold
+sequenceFilters = applyFilter . fold
 
 -- | It is mostly the same as 'applyFiltersM', which converts a list of wrapped
 -- monadic filter to a monadic filter function, but it should be used when you
@@ -249,22 +249,22 @@ convertFilter = applyFilter . mkFilter
 -- | Apply a list of monadic wrapped filters sequentially, from left to right,
 -- i.e. the first element in the list will be applied first and the last
 -- element will be applied at the end.
-{-# DEPRECATED applyFiltersM "Use 'seqFiltersM' instead." #-}
+{-# DEPRECATED applyFiltersM "Use 'sequenceFiltersM' instead." #-}
 applyFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
   -> p                      -- ^ 'Pandoc' AST node.
   -> m p                    -- ^ Transformed node.
-applyFiltersM  = seqFiltersM
+applyFiltersM  = sequenceFiltersM
 
 
 -- | Apply a list of wrapped filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
 -- will be applied at the end.
-{-# DEPRECATED applyFilters "Use 'seqFilters' instead. This function will conflict with a function with the same name in Pandoc." #-}
+{-# DEPRECATED applyFilters "Use 'sequenceFilters' instead. This function will conflict with a function with the same name in Pandoc." #-}
 applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of wrapped filter.
   -> p                   -- ^ 'Pandoc' AST node.
   -> p                   -- ^ Transformed node.
-applyFilters = seqFilters
+applyFilters = sequenceFilters
