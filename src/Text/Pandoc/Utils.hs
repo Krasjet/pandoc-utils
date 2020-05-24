@@ -8,6 +8,6 @@ module Text.Pandoc.Utils (
   module Text.Pandoc.Utils.String
 ) where
 
-import Text.Pandoc.Filter.Utils
+import Text.Pandoc.Filter.Utils hiding (applyFilters, applyFiltersM)
 import Text.Pandoc.Filter.Utils.AttrBuilder
 import Text.Pandoc.Utils.String

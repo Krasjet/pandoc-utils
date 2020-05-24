@@ -27,9 +27,9 @@ module Text.Pandoc.Filter.Utils (
   mkConcatedFilter,
   -- * Wrapped filter application/composition
   applyFilter,
-  applyFilters,
+  seqFilters,
   applyFilterM,
-  applyFiltersM,
+  seqFiltersM,
   -- * Wrapped filter → filter function
   getFilter,
   getConcatedFilter,
@@ -37,6 +37,9 @@ module Text.Pandoc.Filter.Utils (
   getConcatedFilterM,
   -- * Wrapped filter conversion
   toFilterM,
+  -- * Deprecated
+  applyFilters,
+  applyFiltersM,
   ) where
 
 import Control.Monad          ((>=>))
@@ -177,22 +180,22 @@ toFilterM = PartialFilterM . (return .) . applyFilter
 -- | Apply a list of monadic wrapped filters sequentially, from left to right,
 -- i.e. the first element in the list will be applied first and the last
 -- element will be applied at the end.
-applyFiltersM
+seqFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
   -> p                      -- ^ 'Pandoc' AST node.
   -> m p                    -- ^ Transformed node.
-applyFiltersM = applyFilterM . fold
+seqFiltersM = applyFilterM . fold
 
 -- | Apply a list of wrapped filters sequentially, from left to right, i.e.
 -- the first element in the list will be applied first and the last element
 -- will be applied at the end.
-applyFilters
+seqFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of wrapped filter.
   -> p                   -- ^ 'Pandoc' AST node.
   -> p                   -- ^ Transformed node.
-applyFilters = applyFilter . fold
+seqFilters = applyFilter . fold
 
 -- | It is mostly the same as 'applyFiltersM', which converts a list of wrapped
 -- monadic filter to a monadic filter function, but it should be used when you
@@ -238,3 +241,30 @@ convertFilter
   => f        -- ^ A filter function.
   -> (p -> p) -- ^ Filter function acting on @p@.
 convertFilter = applyFilter . mkFilter
+
+-----------------
+-- deprecated
+-----------------
+
+-- | Apply a list of monadic wrapped filters sequentially, from left to right,
+-- i.e. the first element in the list will be applied first and the last
+-- element will be applied at the end.
+{-# DEPRECATED applyFiltersM "Use 'seqFiltersM' instead." #-}
+applyFiltersM
+  :: (Foldable t, Monad m)
+  => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
+  -> p                      -- ^ 'Pandoc' AST node.
+  -> m p                    -- ^ Transformed node.
+applyFiltersM  = seqFiltersM
+
+
+-- | Apply a list of wrapped filters sequentially, from left to right, i.e.
+-- the first element in the list will be applied first and the last element
+-- will be applied at the end.
+{-# DEPRECATED applyFilters "Use 'seqFilters' instead. This function will conflict with a function with the same name in Pandoc." #-}
+applyFilters
+  :: (Foldable t)
+  => t (PartialFilter p) -- ^ A list of wrapped filter.
+  -> p                   -- ^ 'Pandoc' AST node.
+  -> p                   -- ^ Transformed node.
+applyFilters = seqFilters
