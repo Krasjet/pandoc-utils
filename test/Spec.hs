@@ -118,12 +118,18 @@ behead x               = x
 beheadFilter :: PandocFilter
 beheadFilter = mkFilter behead
 
+beheadPandoc :: Pandoc -> Pandoc
+beheadPandoc = convertFilter behead
+
 delink :: Inline -> [Inline]
 delink (Link _ txt _) = txt
 delink x              = [x]
 
 delinkFilter :: PandocFilter
 delinkFilter = mkFilter delink
+
+delinkPandoc :: Pandoc -> Pandoc
+delinkPandoc = convertFilter delink
 
 myFilter :: PandocFilter
 myFilter = beheadFilter <> delinkFilter
@@ -394,6 +400,7 @@ readmeSpec = parallel $
     it "processes filter examples correctly on AST level" $ do
       applyFilters [beheadFilter, delinkFilter] readmeDoc `shouldBe` expectedDoc
       applyFilter myFilter readmeDoc `shouldBe` expectedDoc
+      (delinkPandoc . beheadPandoc) readmeDoc `shouldBe` expectedDoc
 
     it "processes filter examples correctly on Text level" $ do
       fromRight "" (mdToHtml readmeText) `shouldBe` expectedHtml
