@@ -25,7 +25,7 @@ delink x = [x]
 
 Since `behead` has type `Block -> Block`, while `delink` has type `Inline ->
 [Inline]`, they are not naturally composable. However, this package provides a
-utility function `mkFilter` to convert them into a `PandocFilter`.
+utility function `mkFilter` to convert them into a wrapped `PandocFilter`.
 ```haskell
 import Text.Pandoc.Filter.Utils
 
@@ -37,7 +37,7 @@ delinkFilter = mkFilter delink
 ```
 `PandocFilter` is an alias for `PartialFilter Pandoc`, so you can also have
 `PartialFilter Inline`, etc. There is also a monadic version called
-`PartialFilterM` for encapsulating monadic filters.
+`PartialFilterM` for encapsulating monadic filter functions.
 
 The `PandocFilter` is a monoid so you can do something like,
 ```haskell
@@ -58,17 +58,27 @@ mdToHtml md = runPure $ do
   let doc' = applyFilter myFilter doc
   writeHtml5String def doc'
 ```
-or get an unwrapped `Pandoc -> Pandoc` filter using `getFilter` (this function
-is also capable of doing implicit conversion from `PartialFilter a` to `b ->
-b`).
+or get an unwrapped `Pandoc -> Pandoc` filter function using `getFilter` (this
+function is also capable of doing implicit conversion from `PartialFilter a` to
+`b -> b`).
 ```haskell
 myPandocFilter :: Pandoc -> Pandoc
 myPandocFilter = getFilter myFilter
 ```
 
+If you just want to convert between Pandoc filter functions, e.g. `Inline ->
+[Inline]` to `Pandoc -> Pandoc` without using the wrapped filter, there is also
+`convertFilter` and `convertFilterM`
+```haskell
+delinkPandoc :: Pandoc -> Pandoc
+delinkPandoc = convertFilter delink
+```
+This function is slightly more powerful than `walk` and `walkM` in that it is
+also able to handle filter functions of type `a -> [a]` and `a -> m [a]`.
+
 For applying multiple filters, there is also a function called `applyFilters`,
-which takes a list of filters and apply it to a `Pandoc` document (or subnode)
-sequentially, from left to right.
+which takes a list of wrapped filters and apply it to a `Pandoc` document (or
+subnode) sequentially, from left to right.
 ```haskell
 myFilters :: [PandocFilter]
 myFilters =
