@@ -22,6 +22,9 @@ module Text.Pandoc.Filter.Utils (
   PandocFilter,
   PartialFilterM,
   PandocFilterM,
+  -- * Filter function → Wrapped filter
+  ToPartialFilter (..),
+  mkConcatedFilter,
   -- * Wrapped filter application/composition
   applyFilter,
   applyFilters,
@@ -33,8 +36,6 @@ module Text.Pandoc.Filter.Utils (
   getFilterM,
   getConcatedFilterM,
   -- * Wrapped filter conversion
-  ToPartialFilter (..),
-  mkConcatedFilter,
   toFilterM,
   ) where
 
