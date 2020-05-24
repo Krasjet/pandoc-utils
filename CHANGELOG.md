@@ -1,9 +1,13 @@
 # Releases
 
+## pandoc-utils 0.6.1 (2020-5-24)
+
+- Fix the reference to `applyFilters` in readme.
+
 ## pandoc-utils 0.6.0 (2020-5-24)
 
-- Rename `applyFilters` to `seqFilters` to avoid name conflicts with Pandoc
-- `applyFilters` is now deprecated
+- Rename `applyFilters` to `seqFilters` to avoid name conflicts with Pandoc.
+- `applyFilters` is now deprecated.
 
 ## pandoc-utils 0.5.1 (2020-5-24)
 
