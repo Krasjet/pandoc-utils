@@ -1,7 +1,7 @@
 # pandoc-utils
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Krasjet/pandoc-utils/build)
-![Hackage](https://img.shields.io/hackage/v/pandoc-utils)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Krasjet/pandoc-utils/build)](https://github.com/Krasjet/pandoc-utils/actions?query=workflow%3Abuild)
+[![Hackage](https://img.shields.io/hackage/v/pandoc-utils)](https://hackage.haskell.org/package/pandoc-utils)
 
 This package contains some useful functions for writing
 [Pandoc](https://pandoc.org/) filters and integrating Pandoc into Haskell
