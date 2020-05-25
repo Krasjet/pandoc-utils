@@ -1,6 +1,6 @@
 -- | This module exports all the utility functions provided by this package.
 module Text.Pandoc.Utils (
-  -- * Filter utils
+  -- * Filter utils (see "Text.Pandoc.Filter.Utils")
   module Text.Pandoc.Filter.Utils,
   -- * Attribute builders
   module Text.Pandoc.Filter.Utils.AttrBuilder,

@@ -30,6 +30,9 @@ module Text.Pandoc.Filter.Utils (
   sequenceFilters,
   applyFilterM,
   sequenceFiltersM,
+  -- ** Function aliases
+  applyFilters,
+  applyFiltersM,
   -- * Wrapped filter → filter function
   getFilter,
   getConcatedFilter,
@@ -37,9 +40,6 @@ module Text.Pandoc.Filter.Utils (
   getConcatedFilterM,
   -- * Wrapped filter conversion
   toFilterM,
-  -- * Deprecated
-  applyFilters,
-  applyFiltersM,
   ) where
 
 import Control.Monad          ((>=>))
@@ -243,13 +243,12 @@ convertFilter
 convertFilter = applyFilter . mkFilter
 
 -----------------
--- deprecated
+-- Aliases
 -----------------
 
--- | Apply a list of monadic wrapped filters sequentially, from left to right,
--- i.e. the first element in the list will be applied first and the last
--- element will be applied at the end.
-{-# DEPRECATED applyFiltersM "Use 'sequenceFiltersM' instead." #-}
+-- | The same as 'sequenceFiltersM', but it is not exported in
+-- "Text.Pandoc.Utils" to avoid naming conflicts. It can be used by importing
+-- this module.
 applyFiltersM
   :: (Foldable t, Monad m)
   => t (PartialFilterM m p) -- ^ A list of monadic wrapped filters.
@@ -258,10 +257,9 @@ applyFiltersM
 applyFiltersM  = sequenceFiltersM
 
 
--- | Apply a list of wrapped filters sequentially, from left to right, i.e.
--- the first element in the list will be applied first and the last element
--- will be applied at the end.
-{-# DEPRECATED applyFilters "Use 'sequenceFilters' instead. This function will conflict with a function with the same name in Pandoc." #-}
+-- | The same as 'sequenceFilters', but this function will conflict with a
+-- function with the same name in Pandoc, and thus not exported in
+-- "Text.Pandoc.Utils", but it can be used by importing this module.
 applyFilters
   :: (Foldable t)
   => t (PartialFilter p) -- ^ A list of wrapped filter.

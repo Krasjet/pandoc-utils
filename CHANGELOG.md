@@ -1,5 +1,9 @@
 # Releases
 
+## pandoc-utils 0.7.1 (2020-5-25)
+
+- Remove the deprecation notice of `applyFilters`.
+
 ## pandoc-utils 0.7.0 (2020-5-24)
 
 - Rename `seqFilters` to `sequenceFilters` to avoid conflict with `seq`.
