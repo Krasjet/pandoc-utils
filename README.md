@@ -1,22 +1,20 @@
-# pandoc-utils
-
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Krasjet/pandoc-utils/build)](https://github.com/Krasjet/pandoc-utils/actions?query=workflow%3Abuild)
-[![Hackage](https://img.shields.io/hackage/v/pandoc-utils)](https://hackage.haskell.org/package/pandoc-utils)
+pandoc-utils
+============
 
 This package contains some useful functions for writing
-[Pandoc](https://pandoc.org/) filters and integrating Pandoc into Haskell
-applications such as [Hakyll](https://jaspervdj.be/hakyll/).
+[Pandoc][pandoc] filters and integrating Pandoc into Haskell
+applications such as [Hakyll][hakyll].
 
 It provides a composable wrapper for filters acting on nodes of the [Pandoc
-AST](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
-and a few functions to convert between filters. The package also provides an
-attributes builder to work with attributes and some string utility functions to
-handle the switch from `String` to `Text` in pandoc-types 1.20.
+AST][ast] and a few functions to convert between filters. The package also
+provides an attributes builder to work with attributes and some string utility
+functions to handle the switch from `String` to `Text` in pandoc-types 1.20.
 
-## Filter conversion/composition
+Filter conversion/composition
+-----------------------------
 
 As an example, let us look at the `behead` and `delink` filter from [Pandoc's
-tutorial](https://pandoc.org/filters.html).
+tutorial][tutorial].
 ```haskell
 behead :: Block -> Block
 behead (Header n _ xs) | n >= 2 = Para [Emph xs]
@@ -99,7 +97,8 @@ mdToHtml' md = runPure $ do
   writeHtml5String def doc'
 ```
 
-## Attribute builder
+Attribute builder
+================
 
 pandoc-utils also provides an attribute builder for handling attributes. You
 can create a new attributes by
@@ -116,5 +115,10 @@ ghci> attr `setId` "newId"
 ("newId",[],[])
 ```
 
-For more examples, please read the
-[spec](https://github.com/Krasjet/pandoc-utils/blob/master/test/Spec.hs).
+For more examples, please read the [spec][spec].
+
+[pandoc]: https://pandoc.org/
+[hakyll]: https://jaspervdj.be/hakyll/
+[ast]: https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html
+[tutorial]: https://pandoc.org/filters.html
+[spec]: ./test/Spec.hs
